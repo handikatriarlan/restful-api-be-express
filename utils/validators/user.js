@@ -19,4 +19,23 @@ const validateUser = [
     body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
 ];
 
-module.exports = { validateUser }
+const validateUserUpdate = [
+    body('name').optional().notEmpty().withMessage('Name cannot be empty'),
+    body('email')
+        .optional()
+        .isEmail().withMessage('Email is invalid')
+        .custom(async (value, { req }) => {
+            if (value) {
+                const user = await prisma.user.findUnique({ where: { email: value } });
+                if (user && user.id !== Number(req.params.id)) {
+                    throw new Error('Email already exists');
+                }
+            }
+            return true;
+        }),
+    body('password')
+        .optional()
+        .isLength({ min: 6 }).withMessage('Password must be at least 6 characters long'),
+];
+
+module.exports = { validateUser, validateUserUpdate };

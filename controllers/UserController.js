@@ -95,4 +95,53 @@ const findUserById = async (req, res) => {
     }
 };
 
-module.exports = { findUsers, createUser, findUserById };
+const updateUser = async (req, res) => {
+    const { id } = req.params;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(422).json({
+            success: false,
+            message: "Validation error",
+            errors: errors.array(),
+        });
+    }
+
+    try {
+        const oldUser = await prisma.user.findUnique({
+            where: { id: Number(id) },
+        });
+
+        if (!oldUser) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const updatedData = {
+            name: req.body.name || oldUser.name,
+            email: req.body.email || oldUser.email,
+            password: req.body.password ? await bcrypt.hash(req.body.password, 10) : oldUser.password,
+        };
+
+        const user = await prisma.user.update({
+            where: { id: Number(id) },
+            data: updatedData,
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'User updated successfully',
+            data: user,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Internal server error",
+        });
+    }
+};
+
+module.exports = { findUsers, createUser, findUserById, updateUser };
